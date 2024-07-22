@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 import requests
 import random
-from .utils import fetch_webservice_data, process_microcontroller_data
+from .utils import fetch_webservice_data
 
 main_bp = Blueprint('main', __name__)
 
@@ -19,27 +19,17 @@ def get_temperature_and_humidify():
             'webservice_data': {
                 'temperature': round(random.uniform(-20.0, 40.0), 2),
                 'humidity': round(random.uniform(0.0, 100.0), 2)
-            },
-            'microcontroller_data': {
-                'status': 'available',
-                'connection_type': 'wifi',
-                'version': '1.0'
             }
         }
         return jsonify(random_data), 200
     
     try:
-        # Получение данных от первого веб-сервиса
         data = fetch_webservice_data()
-        # Обработка данных и запрос к MicrocontrollerManager
-        microcontroller_data = process_microcontroller_data(data)
     except requests.RequestException as e:
         return jsonify({'error': str(e)}), 500
 
-    # Возвращаем объединённые данные
     result = {
         'webservice_data': data,
-        'microcontroller_data': microcontroller_data
     }
     return jsonify(result), 200
 
