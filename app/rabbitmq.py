@@ -4,9 +4,19 @@ import json
 import time
 
 class RabbitMQ:
-    def __init__(self, host='localhost'):
-        self.host = host
-        self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=self.host))
+    def __init__(self):
+        self.host = 'localhost'
+        self.port = 5672
+        self.username = 'guest'
+        self.password = 'guest'
+        
+        self.connection = pika.BlockingConnection(
+            pika.ConnectionParameters(
+                host=self.host,
+                port=self.port,
+                credentials=pika.PlainCredentials(self.username, self.password)
+            )
+        )
         self.channel = self.connection.channel()
 
     def declare_queue(self, queue_name):
