@@ -1,9 +1,13 @@
+# routes.py
 from flask import Blueprint, request, jsonify
-import requests
 import random
 from .utils import fetch_webservice_data
+from .rabbitmq import RabbitMQ
 
 main_bp = Blueprint('main', __name__)
+
+# Инициализация RabbitMQ
+rabbitmq = RabbitMQ()
 
 @main_bp.route('/', methods=['GET'])
 def index():
@@ -33,12 +37,22 @@ def get_temperature_and_humidify():
     }
     return jsonify(result), 200
 
+@main_bp.route('/send-request', methods=['POST'])
+def send_request():
+    request_data = request.json
+    queue_name = request_data.get('queue_name', 'temperatureQueue')
+    response_queue = request_data.get('response_queue', 'temperatureResponseQueue')
+    message = request_data.get('message', {})
+
+    try:
+        rabbitmq.send_message(queue_name, message)
+        response = rabbitmq.get_message(response_queue, message['requestId'], timeout=30)
+        return jsonify(response), 200
+    except TimeoutError as e:
+        return jsonify({'error': str(e)}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @main_bp.route('/healthcheck', methods=['GET'])
 def healthcheck():
     return jsonify({'status': 'ok'}), 200
-
-
-# docker stop ms-get-temp-and-humd-container || true && \
-# docker rm ms-get-temp-and-humd-container || true && \
-# docker build -t ms-get-temp-and-humd . && \
-# docker run -d -p 5000:5000 --name ms-get-temp-and-humd-container ms-get-temp-and-humd
