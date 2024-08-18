@@ -15,27 +15,6 @@ def get_rabbitmq_connection():
     channel.queue_declare(queue=current_app.config['RESPONSE_QUEUE_NAME'], durable=False, exclusive=False, auto_delete=False)
     return connection, channel
 
-@bp.route('/send_request', methods=['POST'])
-def send_request():
-    """Отправляет запрос в очередь RabbitMQ."""
-    data = request.json
-    correlation_id = data.get('correlationId')
-    if not correlation_id:
-        return jsonify({'error': 'CorrelationId is required'}), 400
-
-    connection, channel = get_rabbitmq_connection()
-    message = json.dumps({'methodName': 'get-temperature-and-humidify', 'isRandom': True})
-    channel.basic_publish(
-        exchange='',
-        routing_key=current_app.config['REQUEST_QUEUE_NAME'],
-        body=message,
-        properties=pika.BasicProperties(
-            correlation_id=correlation_id
-        )
-    )
-    connection.close()
-    return jsonify({'message': 'Request sent'}), 200
-
 def process_message(ch, method, properties, body):
     """Функция обратного вызова для обработки сообщений из очереди RabbitMQ."""
     request_data = json.loads(body)
@@ -78,14 +57,15 @@ def process_message(ch, method, properties, body):
         print(f"Unknown methodName: {method_name}")
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
-def start_processing():
-    """Запускает прослушиватель очереди для обработки сообщений."""
-    connection, channel = get_rabbitmq_connection()
-    channel.basic_consume(
-        queue=current_app.config['REQUEST_QUEUE_NAME'],
-        on_message_callback=process_message,
-        auto_ack=False
-    )
+def start_processing(app):
+    """Запускает прослушиватель очереди для обработки сообщений с контекстом приложения."""
+    with app.app_context():
+        connection, channel = get_rabbitmq_connection()
+        channel.basic_consume(
+            queue=current_app.config['REQUEST_QUEUE_NAME'],
+            on_message_callback=process_message,
+            auto_ack=False
+        )
 
-    print("Processing messages...")
-    channel.start_consuming()
+        print("Processing messages...")
+        channel.start_consuming()

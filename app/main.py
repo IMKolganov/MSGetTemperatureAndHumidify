@@ -19,10 +19,10 @@ def create_app():
     app.register_blueprint(routes_bp)
     return app
 
-def start_message_processing():
-    """Запускает обработку сообщений в отдельном потоке."""
+def start_message_processing(app):
+    """Запускает обработку сообщений в отдельном потоке с контекстом приложения."""
     import app.routes.requests as requests
-    processing_thread = threading.Thread(target=requests.start_processing)
+    processing_thread = threading.Thread(target=requests.start_processing, args=(app,))
     processing_thread.daemon = True
     processing_thread.start()
 
