@@ -11,9 +11,7 @@ RUN pip install -r requirements.txt
 # Копируйте все файлы в рабочую директорию
 COPY . .
 
-# Установите переменную окружения для Flask
-# Указываем на main.py, который создает приложение
-ENV FLASK_APP=app/main.py
+ENV FLASK_APP=run.py
 
 # Открываем порт 5000 для Flask
 EXPOSE 5000
