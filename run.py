@@ -17,7 +17,7 @@ if __name__ == '__main__':
     signal.signal(signal.SIGTERM, handle_shutdown_signal)
     
     print("Starting message processing...")
-    start_message_processing(app)  # Запуск обработки сообщений
+    start_message_processing(app)
     
     print("Starting Flask app...")
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -6,7 +6,6 @@ import random
 
 @bp.route('/get-temperature-and-humidify')
 def get_temperature_and_humidify():
-    # Генерация случайных данных
     temperature = round(random.uniform(0, 100), 2)
     humidity = round(random.uniform(0, 100), 2)
     

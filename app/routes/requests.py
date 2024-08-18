@@ -12,8 +12,8 @@ connection = None
 channel = None
 
 def get_rabbitmq_connection():
-    """Создает соединение с RabbitMQ и возвращает канал и соединение."""
-    for attempt in range(5):  # Попытки подключения
+    """Creates a connection to RabbitMQ and returns a channel and connection."""
+    for attempt in range(5):
         try:
             connection = pika.BlockingConnection(pika.ConnectionParameters(host=current_app.config['RABBITMQ_HOST']))
             channel = connection.channel()
@@ -22,11 +22,11 @@ def get_rabbitmq_connection():
             return connection, channel
         except pika.exceptions.AMQPConnectionError:
             print("Connection failed, retrying...")
-            time.sleep(5)  # Подождите 5 секунд перед повторной попыткой
+            time.sleep(5)
     raise RuntimeError("Failed to connect to RabbitMQ after several attempts")
 
 def process_message(ch, method, properties, body):
-    """Функция обратного вызова для обработки сообщений из очереди RabbitMQ."""
+    """Callback function for processing messages from a RabbitMQ queue."""
     request_data = json.loads(body)
     method_name = request_data.get('MethodName')
     correlation_id = properties.correlation_id
@@ -68,7 +68,7 @@ def process_message(ch, method, properties, body):
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
 def start_processing(app):
-    """Запускает прослушиватель очереди для обработки сообщений с контекстом приложения."""
+    """Starts a queue listener to process messages with application context."""
     with app.app_context():
         time.sleep(3)
         connection, channel = get_rabbitmq_connection()
