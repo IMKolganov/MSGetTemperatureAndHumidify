@@ -3,9 +3,19 @@
 from flask import Flask
 from app.routes import bp as routes_bp
 import threading
+import os
 
 def create_app():
     app = Flask(__name__)
+
+    env = os.getenv('FLASK_ENV', 'development')
+    if env == 'development':
+        app.config.from_object('app.config.DevelopmentConfig')
+    elif env == 'docker':
+        app.config.from_object('app.config.DockerConfig')
+    else:
+        app.config.from_object('app.config.Config')
+    
     app.register_blueprint(routes_bp)
     return app
 
@@ -17,7 +27,3 @@ def start_message_processing():
     processing_thread.start()
 
 app = create_app()
-
-if __name__ == '__main__':
-    start_message_processing()  # Запуск обработки сообщений
-    app.run(debug=True, host='0.0.0.0', port=5000)
