@@ -3,6 +3,7 @@
 import pika
 import json
 import random
+import time
 from flask import Blueprint, request, jsonify, current_app
 
 bp = Blueprint('requests', __name__)
@@ -12,13 +13,17 @@ channel = None
 
 def get_rabbitmq_connection():
     """Создает соединение с RabbitMQ и возвращает канал и соединение."""
-    global connection, channel
-    if not connection or not channel:
-        connection = pika.BlockingConnection(pika.ConnectionParameters(host=current_app.config['RABBITMQ_HOST']))
-        channel = connection.channel()
-        channel.queue_declare(queue=current_app.config['REQUEST_QUEUE_NAME'], durable=False, exclusive=False, auto_delete=False)
-        channel.queue_declare(queue=current_app.config['RESPONSE_QUEUE_NAME'], durable=False, exclusive=False, auto_delete=False)
-    return connection, channel
+    for attempt in range(5):  # Попытки подключения
+        try:
+            connection = pika.BlockingConnection(pika.ConnectionParameters(host=current_app.config['RABBITMQ_HOST']))
+            channel = connection.channel()
+            channel.queue_declare(queue=current_app.config['REQUEST_QUEUE_NAME'], durable=False, exclusive=False, auto_delete=False)
+            channel.queue_declare(queue=current_app.config['RESPONSE_QUEUE_NAME'], durable=False, exclusive=False, auto_delete=False)
+            return connection, channel
+        except pika.exceptions.AMQPConnectionError:
+            print("Connection failed, retrying...")
+            time.sleep(5)  # Подождите 5 секунд перед повторной попыткой
+    raise RuntimeError("Failed to connect to RabbitMQ after several attempts")
 
 def process_message(ch, method, properties, body):
     """Функция обратного вызова для обработки сообщений из очереди RabbitMQ."""
@@ -65,6 +70,7 @@ def process_message(ch, method, properties, body):
 def start_processing(app):
     """Запускает прослушиватель очереди для обработки сообщений с контекстом приложения."""
     with app.app_context():
+        time.sleep(3)
         connection, channel = get_rabbitmq_connection()
         channel.basic_consume(
             queue=current_app.config['REQUEST_QUEUE_NAME'],
