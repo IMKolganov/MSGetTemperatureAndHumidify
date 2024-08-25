@@ -3,7 +3,10 @@
 from flask import Flask
 from app.routes import bp as routes_bp
 import threading
+import sys
 import os
+from app.clients.rabbit_mq_client import RabbitMQClient
+from app.services.temperature_humidity_service import TemperatureHumidityService
 
 def create_app():
     app = Flask(__name__)
@@ -26,10 +29,13 @@ def handle_signal(signum, frame):
 
 def start_message_processing(app):
     """Starts message processing in a separate thread with application context."""
-    import app.routes.requests as requests
-    processing_thread = threading.Thread(target=requests.start_processing, args=(app,))
+    import app.services.temperature_humidity_service as temperature_humidity_service
+    rabbitmq_client = RabbitMQClient(host=app.config['RABBITMQ_HOST'], queues=app.config['QUEUES'])
+    temperature_humidity_service = TemperatureHumidityService(rabbitmq_client=rabbitmq_client)
+    
+    processing_thread = threading.Thread(target=temperature_humidity_service.start_listening, args=(app,))
     processing_thread.daemon = True
     processing_thread.start()
-    print("Message processing thread started")
+    print("MSGetTemperatureAndHumidify: Message processing thread started")
 
 app = create_app()
