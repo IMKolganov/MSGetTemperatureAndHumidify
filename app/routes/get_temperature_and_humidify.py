@@ -13,5 +13,7 @@ def get_temperature_and_humidify():
         'temperature': temperature,
         'humidity': humidity
     }
+
+    #todo: this method must use the service temperature_humidity_service
     
     return jsonify(response_message)

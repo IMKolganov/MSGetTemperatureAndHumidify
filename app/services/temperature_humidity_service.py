@@ -23,15 +23,7 @@ class TemperatureHumidityService:
             if request_data.get('WithoutMSMicrocontrollerManager'):
                 temperature = round(random.uniform(0, 100), 2)
                 humidity = round(random.uniform(0, 100), 2)
-
-                # Create response in the required format
-                response_message = {
-                    'RequestId': request_data.get('GUID', str(uuid.uuid4())),
-                    'MethodName': method_name,
-                    'Temperature': temperature,
-                    'Humidity': humidity,
-                    'CreateDate': datetime.utcnow().isoformat()
-                }
+                response_message = self.prepare_response(request_data.get('RequestId'), method_name, temperature, humidity)
 
                 ch.basic_publish(
                     exchange='',
@@ -48,7 +40,7 @@ class TemperatureHumidityService:
                 return
 
             message = TemperatureHumidityRequestMessage(
-                request_id=request_data.get('GUID'),
+                request_id=request_data.get('RequestId'),
                 method_name='get-temperature-and-humidify',
                 create_date=datetime.utcnow().isoformat(),
                 additional_info={"request_origin": "MSGetTemperatureAndHumidify"}
@@ -95,6 +87,15 @@ class TemperatureHumidityService:
         else:
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
             print(f"Unhandled method '{method_name}'. Message nack'ed.")
+
+    def prepare_response(self, request_id, method_name, temperature, humidity):
+        return {
+            'RequestId': request_id,
+            'MethodName': method_name,
+            'Temperature': temperature,
+            'Humidity': humidity,
+            'CreateDate': datetime.utcnow().isoformat()
+        }
 
     def start_listening(self, app):
         time.sleep(3)  # Delay for service readiness
